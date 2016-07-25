@@ -1,5 +1,3 @@
-package com.ccc.chapter2.test;
-
 import chapter2.model.Customer;
 import chapter2.service.CustomerService;
 import org.junit.Assert;
@@ -9,8 +7,6 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.sun.xml.internal.ws.dump.LoggingDumpTube.Position.Before;
 
 /**
  * Created by Administrator on 2016/7/22.
