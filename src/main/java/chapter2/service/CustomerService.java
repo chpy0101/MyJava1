@@ -1,6 +1,7 @@
 package chapter2.service;
 
 import ccc.Utils.ProUtils;
+import ccc.helper.DatabaseHelper;
 import chapter2.model.Customer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,26 +16,8 @@ import java.util.Properties;
  * Created by Administrator on 2016/7/22.
  */
 public class CustomerService {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ProUtils.class);
-
-    private static final String DRIVER;
-    private static final String URL;
-    private static final String USERNAME;
-    private static final String PASSWORD;
-
-    static {
-        Properties config = ProUtils.loadProps("config.properties");
-        DRIVER = config.getProperty("jdbc.driver");
-        URL = config.getProperty("jdbc.url");
-        USERNAME = config.getProperty("jdbc.username");
-        PASSWORD = config.getProperty("jdbc.password");
-
-        try {
-            Class.forName(DRIVER);
-        } catch (ClassNotFoundException ex) {
-            LOGGER.error("can not load jdbc driver", ex);
-        }
-    }
 
     /**
      * 获取客户列表
@@ -45,7 +28,7 @@ public class CustomerService {
         try {
             List<Customer> customerList = new ArrayList<Customer>();
             String sql = "select * from customer";
-            con = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+            con = DatabaseHelper.getConnection();
             PreparedStatement stmt = con.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -58,13 +41,7 @@ public class CustomerService {
         } catch (SQLException ex) {
             LOGGER.error(" execute sql faild", ex);
         } finally {
-            if (con != null) {
-                try {
-                    con.close();
-                } catch (SQLException ex) {
-                    LOGGER.error("close connection faild", ex);
-                }
-            }
+            DatabaseHelper.closeConnectiong(con);
         }
         return null;
     }
