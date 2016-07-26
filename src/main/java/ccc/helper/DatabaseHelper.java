@@ -51,6 +51,7 @@ public class DatabaseHelper {
             con = DriverManager.getConnection(URL, Pro);
         } catch (SQLException ex) {
             LOGGER.error("get connection failed", ex);
+
         }
         return con;
     }
