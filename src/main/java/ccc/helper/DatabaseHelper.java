@@ -5,6 +5,7 @@ import ccc.Utils.ProUtils;
 import chapter2.model.Customer;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.map.HashedMap;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
@@ -25,19 +26,23 @@ public class DatabaseHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProUtils.class);
 
-    private static final QueryRunner QUERY_RUNNER = new QueryRunner();
+    private static final QueryRunner QUERY_RUNNER;
 
     private static final String URL;
     private static final Properties Pro = new Properties();
 
     private static final ThreadLocal<Connection> CONNECTION_HOLDER = new ThreadLocal<Connection>();
 
+
+    private static final BasicDataSource DATA_SOURCE;
     /**
      * hashMap表名字典
      */
     private static final Map<String, String> TABLE_MAP;
 
     static {
+        QUERY_RUNNER = new QueryRunner();
+
         Properties config = ProUtils.loadProps("config.properties");
         URL = config.getProperty("url");
         Pro.setProperty("driver", config.getProperty("driver"));
@@ -51,6 +56,13 @@ public class DatabaseHelper {
         }
         //初始化表名字典表
         TABLE_MAP = new HashMap<String, String>();
+
+        DATA_SOURCE = new BasicDataSource();
+        DATA_SOURCE.setDriverClassName(config.getProperty("driver"));
+        DATA_SOURCE.setUrl(config.getProperty("url"));
+        DATA_SOURCE.setUsername(config.getProperty("user"));
+        DATA_SOURCE.setPassword(config.getProperty("password"));
+
     }
 
     /**
@@ -75,7 +87,7 @@ public class DatabaseHelper {
         Connection con = CONNECTION_HOLDER.get();
         if (con == null) {
             try {
-                con = DriverManager.getConnection(URL, Pro);
+                con = DATA_SOURCE.getConnection();
             } catch (SQLException ex) {
                 LOGGER.error("get connection failed", ex);
                 throw new RuntimeException(ex);
@@ -209,7 +221,7 @@ public class DatabaseHelper {
     }
 
     /**
-     * 新增
+     * 更新
      */
     public static <T> boolean updateEntity(Class<T> entityClass, long id, Map<String, Object> fieldMap) {
         if (CollectionUtil.isEmpty(fieldMap) || id < 0) {
@@ -226,5 +238,11 @@ public class DatabaseHelper {
         return excuteUpdate(sql, params) > 0;
     }
 
-
+    /**
+     * 删除
+     */
+    public static <T> boolean deleteEntity(Class<T> entityClass, long id) {
+        String sql = "Delete from" + getTableName(entityClass) + " where id=?";
+        return excuteUpdate(sql, id) == 1;
+    }
 }
