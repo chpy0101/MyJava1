@@ -1,19 +1,21 @@
 package ccc.helper;
 
+import ccc.Utils.CollectionUtil;
 import ccc.Utils.ProUtils;
 import chapter2.model.Customer;
-import com.sun.org.apache.bcel.internal.generic.NEW;
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
+import org.apache.commons.dbutils.handlers.MapListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 
 /**
@@ -28,6 +30,13 @@ public class DatabaseHelper {
     private static final String URL;
     private static final Properties Pro = new Properties();
 
+    private static final ThreadLocal<Connection> CONNECTION_HOLDER = new ThreadLocal<Connection>();
+
+    /**
+     * hashMap表名字典
+     */
+    private static final Map<String, String> TABLE_MAP;
+
     static {
         Properties config = ProUtils.loadProps("config.properties");
         URL = config.getProperty("url");
@@ -41,7 +50,7 @@ public class DatabaseHelper {
             LOGGER.error("can not load jdbc driver", ex);
         }
         //初始化表名字典表
-        TABLE_MAP = new HashedMap<String, String>();
+        TABLE_MAP = new HashMap<String, String>();
     }
 
     /**
@@ -49,7 +58,7 @@ public class DatabaseHelper {
      */
     private static void initTableMap() {
         Properties pro = ProUtils.loadProps("table.properties");
-        HashedMap<String, String> map = new HashedMap<String, String>();
+        HashMap<String, String> map = new HashMap<String, String>();
         for (Map.Entry item : pro.entrySet()) {
             map.put(item.getKey().toString(), item.getValue().toString());
         }
@@ -92,6 +101,20 @@ public class DatabaseHelper {
     }
 
     /**
+     * 获取表名
+     */
+    private static <T> String getTableName(Class<T> entityClass) {
+        if (!TABLE_MAP.containsKey(entityClass.getName())) {
+            initTableMap();
+            if (!TABLE_MAP.containsKey(entityClass.getName())) {
+                LOGGER.error("Table not exist", new Exception(entityClass.getName()));
+                throw new RuntimeException("table not exist");
+            }
+        }
+        return TABLE_MAP.get(entityClass.getName());
+    }
+
+    /**
      * 查询实体列表
      */
     public static <T> List<T> queryEntityList(Class<T> entityClass, String sql, Object... params) {
@@ -103,7 +126,7 @@ public class DatabaseHelper {
             LOGGER.error("query entity list failed", ex);
             throw new RuntimeException(ex);
         } finally {
-            closeConnectiong(con);
+            closeConnectiong();
         }
         return entityList;
     }
@@ -133,7 +156,7 @@ public class DatabaseHelper {
         try {
             Connection con = getConnection();
             entity = QUERY_RUNNER.query(con, sql, new MapListHandler(), params);
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             LOGGER.error("query entity list failed", ex);
             throw new RuntimeException(ex);
         } finally {
@@ -150,7 +173,7 @@ public class DatabaseHelper {
         try {
             Connection con = getConnection();
             rows = QUERY_RUNNER.update(con, sql, params);
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             LOGGER.error("execute update failed", ex);
             throw new RuntimeException(ex);
         } finally {
@@ -167,54 +190,41 @@ public class DatabaseHelper {
             LOGGER.error("can not insert entity: fieldMap is empty");
             return false;
         }
-        try {
-            String sql = "Insert into" + getTableName(entityClass);
+        String sql = "Insert into" + getTableName(entityClass);
 
-            StringBuilder colums = new StringBuilder("(");
-            StringBuilder values = new StringBuilder("(");
-            for (Map.Entry fieldName : fieldMap.entrySet()) {
-                colums.append(fieldName.getKey()).append(",");
-                values.append("?,");
-            }
-            colums.replace(colums.lastIndexOf(","), colums.length(), ")");
-            values.replace(values.lastIndexOf(","), values.length(), ")");
-            sql += colums + "values" + values;
-            Connection con = getConnection();
-
-            Object[] params = fieldMap.values().toArray();
-            return excuteUpdate(sql, params) == 1;
-        } catch (Exception ex) {
-            LOGGER.error("insert failed", ex);
-            throw new RuntimeException("insert failed");
-        } finally {
-            closeConnectiong();
+        StringBuilder colums = new StringBuilder("(");
+        StringBuilder values = new StringBuilder("(");
+        for (Map.Entry fieldName : fieldMap.entrySet()) {
+            colums.append(fieldName.getKey()).append(",");
+            values.append("?,");
         }
+        colums.replace(colums.lastIndexOf(","), colums.length(), ")");
+        values.replace(values.lastIndexOf(","), values.length(), ")");
+        sql += colums + "values" + values;
+        Connection con = getConnection();
+
+        Object[] params = fieldMap.values().toArray();
+        return excuteUpdate(sql, params) == 1;
+
     }
 
     /**
-     * 更新
+     * 新增
      */
     public static <T> boolean updateEntity(Class<T> entityClass, long id, Map<String, Object> fieldMap) {
         if (CollectionUtil.isEmpty(fieldMap) || id < 0) {
             return false;
         }
-        try {
-            String sql = "Update " + getTableName(entityClass) + " Set";
-            StringBuilder colums = new StringBuilder("(");
-            for (String colum : fieldMap.keySet()) {
-                colums.append(colum).append("=?,");
-            }
-            sql += colums.substring(0, colums.lastIndexOf(",")) + ")";
-
-            Object[] params = fieldMap.values().toArray();
-            return excuteUpdate(sql, params) > 0;
-        } catch (Exception ex) {
-            LOGGER.error("update failed", ex);
-            throw new RuntimeException("update failed");
-        } finally {
-            closeConnectiong();
+        String sql = "Update " + getTableName(entityClass) + " Set";
+        StringBuilder colums = new StringBuilder("(");
+        for (String colum : fieldMap.keySet()) {
+            colums.append(colum).append("=?,");
         }
+        sql += colums.substring(0, colums.lastIndexOf(",")) + ")";
 
+        Object[] params = fieldMap.values().toArray();
+        return excuteUpdate(sql, params) > 0;
     }
+
 
 }
