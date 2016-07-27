@@ -23,27 +23,8 @@ public class CustomerService {
      * 获取客户列表
      */
     public List<Customer> getCustomerList(String keyword) {
-
-        Connection con = null;
-        try {
-            List<Customer> customerList = new ArrayList<Customer>();
-            String sql = "select * from customer";
-            con = DatabaseHelper.getConnection();
-            PreparedStatement stmt = con.prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                Customer cus = new Customer();
-                cus.setId(rs.getLong("id"));
-                cus.setContact(rs.getString("contact"));
-                customerList.add(cus);
-            }
-            return customerList;
-        } catch (SQLException ex) {
-            LOGGER.error(" execute sql faild", ex);
-        } finally {
-            DatabaseHelper.closeConnectiong(con);
-        }
-        return null;
+        String sql = "select * from customer";
+        return DatabaseHelper.queryEntityList(Customer.class, sql);
     }
 
     /**
