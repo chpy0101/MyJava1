@@ -1,22 +1,19 @@
 package ccc.helper;
 
-import ccc.Utils.CollectionUtil;
 import ccc.Utils.ProUtils;
 import chapter2.model.Customer;
 import com.sun.org.apache.bcel.internal.generic.NEW;
-import org.apache.commons.collections4.MultiSet;
-import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
-import org.apache.commons.dbutils.handlers.MapListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 
 /**
@@ -31,16 +28,8 @@ public class DatabaseHelper {
     private static final String URL;
     private static final Properties Pro = new Properties();
 
-    private static final ThreadLocal<Connection> CONNECTION_HOLDER = new ThreadLocal<Connection>();
-
-    /**
-     * hashMap表名字典
-     */
-    private static final Map<String, String> TABLE_MAP;
-
     static {
         Properties config = ProUtils.loadProps("config.properties");
-
         URL = config.getProperty("url");
         Pro.setProperty("driver", config.getProperty("driver"));
         Pro.setProperty("user", config.getProperty("user"));
@@ -98,42 +87,23 @@ public class DatabaseHelper {
                 con.close();
             } catch (SQLException ex) {
                 LOGGER.error("close connection faild", ex);
-                throw new RuntimeException(ex);
-            } finally {
-                CONNECTION_HOLDER.remove();
             }
         }
-    }
-
-
-    /**
-     * 获取表名
-     */
-    private static <T> String getTableName(Class<T> entiyClass) throws Exception {
-
-        if (!TABLE_MAP.containsKey(entiyClass.getName())) {
-            initTableMap();
-            if (!TABLE_MAP.containsKey(entiyClass.getName())) {
-                throw new Exception("table not exist");
-            }
-        }
-        return TABLE_MAP.get(entiyClass.getName());
     }
 
     /**
      * 查询实体列表
      */
-    public static <I> List<I> queryEntityList(Class<I> entityClass, String sql, Object... params) {
-        List<I> entityList;
-
+    public static <T> List<T> queryEntityList(Class<T> entityClass, String sql, Object... params) {
+        List<T> entityList;
+        Connection con = getConnection();
         try {
-            Connection con = getConnection();
-            entityList = QUERY_RUNNER.query(con, sql, new BeanListHandler<I>(entityClass), params);
-        } catch (Exception ex) {
+            entityList = QUERY_RUNNER.query(con, sql, new BeanListHandler<T>(entityClass), params);
+        } catch (SQLException ex) {
             LOGGER.error("query entity list failed", ex);
             throw new RuntimeException(ex);
         } finally {
-            closeConnectiong();
+            closeConnectiong(con);
         }
         return entityList;
     }
