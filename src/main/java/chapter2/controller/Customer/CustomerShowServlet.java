@@ -1,4 +1,6 @@
-package chapter2.controller;
+package chapter2.controller.Customer;
+
+import chapter2.controller.BaseServlet;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;

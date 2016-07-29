@@ -1,12 +1,15 @@
+import ccc.helper.DatabaseHelper;
 import chapter2.model.Customer;
 import chapter2.service.CustomerService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Created by Administrator on 2016/7/22.
@@ -19,8 +22,18 @@ public class CustomerServiceTest {
     }
 
     @Before
-    public void init() {
-
+    public void init() throws Exception {
+        try {
+            String file = "sql/customer_insert.sql";
+            InputStream str = Thread.currentThread().getContextClassLoader().getResourceAsStream(file);
+            BufferedReader rd = new BufferedReader(new InputStreamReader(str));
+            String sql;
+            while ((sql = rd.readLine()) != null) {
+                DatabaseHelper.excuteUpdate(sql);
+            }
+        } catch (Exception ex) {
+            throw ex;
+        }
     }
 
     @Test
@@ -47,10 +60,10 @@ public class CustomerServiceTest {
     }
 
     @Test
-    public void updateCutomerServiceTest(){
-        Map<String,Object> fieldMap = new HashMap<String ,Object>();
+    public void updateCutomerServiceTest() {
+        Map<String, Object> fieldMap = new HashMap<String, Object>();
         fieldMap.put("name", "陈晨昊");
-        boolean result = customerService.updateCustomer(3,fieldMap);
+        boolean result = customerService.updateCustomer(3, fieldMap);
         Assert.assertTrue(result);
     }
 

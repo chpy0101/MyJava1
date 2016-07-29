@@ -1,4 +1,7 @@
-package chapter2.controller;
+package chapter2.controller.Customer;
+
+import chapter2.controller.BaseServlet;
+import chapter2.service.CustomerService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -11,6 +14,13 @@ import java.io.IOException;
  */
 @WebServlet("/customer_create")
 public class CustomerCreateServlet extends BaseServlet {
+
+    private CustomerService service;
+
+    @Override
+    public void init() throws ServletException {
+        service = new CustomerService();
+    }
 
     /**
      * 进入创建页面

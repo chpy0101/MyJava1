@@ -180,7 +180,7 @@ public class DatabaseHelper {
     /**
      * 执行更新语句（insert,update,delete）
      */
-    private static int excuteUpdate(String sql, Object... params) {
+    public static int excuteUpdate(String sql, Object... params) {
         int rows = 0;
         try {
             Connection con = getConnection();
